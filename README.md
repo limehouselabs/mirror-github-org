@@ -18,8 +18,8 @@ Usage
 * Clone this repository to an organisation/user you control
 * Login to CircleCI and enable it for this new cloned repository
 * Configure three environment variables in CircleCI for this repository
-** `GITHUB_TOKEN` - The personal access token you created above
-** `SRC_ORG` - The name of the organisation you want to mirror
-** `DST_ORG` - The name of the new organisation you just created
+  * `GITHUB_TOKEN` - The personal access token you created above
+  * `SRC_ORG` - The name of the organisation you want to mirror
+  * `DST_ORG` - The name of the new organisation you just created
 * Run the job and sit back, you now have a daily-updated mirror of a Github
   org!
