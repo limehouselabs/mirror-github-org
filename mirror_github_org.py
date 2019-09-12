@@ -20,12 +20,12 @@ def check_rate_limiting(rl):
         ) + datetime.timedelta(seconds=EXTRA_WAIT)
 
         print(
-            "\nWAITING: Remaining rate limit is %s of %s. Waiting for reset at %s before continuing.\n"
-            % (remaining, total, reset_time_human)
+            "\nWAITING: Remaining rate limit is %s of %s. Waiting %s mins for reset at %s before continuing.\n"
+            % (remaining, total, int((reset_time - time.time())/60), reset_time_human)
         )
 
         while time.time() <= (reset_time + EXTRA_WAIT):
-            time.sleep(60*5)
+            time.sleep(60)
             print(".", end="")
 
         print("\n")
