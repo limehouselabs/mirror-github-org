@@ -24,8 +24,11 @@ def check_rate_limiting(rl):
             % (remaining, total, reset_time_human)
         )
 
-        sleep_time = (reset_time - time.time()) + EXTRA_WAIT
-        time.sleep(sleep_time)
+        while time.time() <= (reset_time + EXTRA_WAIT):
+            time.sleep(60*5)
+            print(".", end="")
+
+        print("\n")
 
 
 def mirror(token, src_org, dst_org):
@@ -57,6 +60,8 @@ def mirror(token, src_org, dst_org):
 
         else:
             print("\n\nSyncing %s..." % src_repo.name, end="")
+
+            updated = False
             for src_branch in src_repo.get_branches():
                 check_rate_limiting(src_branch)
 
@@ -72,11 +77,17 @@ def mirror(token, src_org, dst_org):
                     if src_branch.commit.sha != dst_ref.object.sha:
                         print("(updated)", end="")
                         dst_ref.edit(sha=src_branch.commit.sha, force=True)
+                        updated = True
                 else:
                     print("(new)", end="")
                     dst_repo.create_git_ref(
                         ref="refs/heads/%s" % encoded_name, sha=src_branch.commit.sha
                     )
+                    updated = True
+
+            if not updated:
+                print("\n\nNo more updates to mirror. Ending run.")
+                sys.exit(0)
 
 
 if __name__ == "__main__":
