@@ -1,6 +1,7 @@
 import os
 import time
 import datetime
+import urllib.parse
 
 from github import Github
 from github.GithubException import UnknownObjectException, GithubException
@@ -14,7 +15,9 @@ def check_rate_limiting(rl):
 
     if remaining < RATE_BUFFER:
         reset_time = rl._requester.rate_limiting_resettime
-        reset_time_human = datetime.datetime.fromtimestamp(int(reset_time)) + datetime.timedelta(seconds=EXTRA_WAIT)
+        reset_time_human = datetime.datetime.fromtimestamp(
+            int(reset_time)
+        ) + datetime.timedelta(seconds=EXTRA_WAIT)
 
         print(
             "\nWAITING: Remaining rate limit is %s of %s. Waiting for reset at %s before continuing.\n"
@@ -45,7 +48,7 @@ def mirror(token, src_org, dst_org):
             try:
                 response = dst_org.create_fork(src_repo)
             except GithubException as e:
-                if "contains no Git content" in e._GithubException__data['message']:
+                if "contains no Git content" in e._GithubException__data["message"]:
                     # Hit an empty repo, which cannot be forked
                     print("\n * Skipping empty repository", end="")
                     continue
@@ -58,9 +61,10 @@ def mirror(token, src_org, dst_org):
                 check_rate_limiting(src_branch)
 
                 print("\n - %s " % src_branch.name, end=""),
+                encoded_name = urllib.parse.quote(src_branch.name)
 
                 try:
-                    dst_ref = dst_repo.get_git_ref(ref="heads/%s" % src_branch.name)
+                    dst_ref = dst_repo.get_git_ref(ref="heads/%s" % encoded_name)
                 except UnknownObjectException:
                     dst_ref = None
 
@@ -71,7 +75,7 @@ def mirror(token, src_org, dst_org):
                 else:
                     print("(new)", end="")
                     dst_repo.create_git_ref(
-                        ref="refs/heads/%s" % src_branch.name, sha=src_branch.commit.sha
+                        ref="refs/heads/%s" % encoded_name, sha=src_branch.commit.sha
                     )
 
 
