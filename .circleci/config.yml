@@ -8,7 +8,7 @@ jobs:
       - run:
           command: |
             sudo pip install pygithub
-            python mirror_github_org.py
+            python -u mirror_github_org.py
 workflows:
   version: 2
   build:
