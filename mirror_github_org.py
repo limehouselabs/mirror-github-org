@@ -84,7 +84,7 @@ if __name__ == "__main__":
     for param in ("GITHUB_TOKEN", "SRC_ORG", "DST_ORG"):
         p[param] = os.getenv(param)
         if not p[param]:
-            print("No %s supplied in env" % var)
+            print("No %s supplied in env" % param)
             sys.exit(1)
 
     mirror(p["GITHUB_TOKEN"], p["SRC_ORG"], p["DST_ORG"])
