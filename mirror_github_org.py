@@ -1,3 +1,4 @@
+import sys
 import os
 import time
 import datetime
@@ -21,7 +22,7 @@ def check_rate_limiting(rl):
 
         print(
             "\nWAITING: Remaining rate limit is %s of %s. Waiting %s mins for reset at %s before continuing.\n"
-            % (remaining, total, int((reset_time - time.time())/60), reset_time_human)
+            % (remaining, total, int((reset_time - time.time()) / 60), reset_time_human)
         )
 
         while time.time() <= (reset_time + EXTRA_WAIT):
