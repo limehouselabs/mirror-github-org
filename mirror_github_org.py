@@ -75,7 +75,10 @@ def mirror(token, src_org, dst_org):
                     dst_ref = None
 
                 if dst_ref:
-                    if src_branch.commit.sha != dst_ref.object.sha:
+                    if (
+                        not dst_ref.object
+                        or src_branch.commit.sha != dst_ref.object.sha
+                    ):
                         print("(updated)", end="")
                         dst_ref.edit(sha=src_branch.commit.sha, force=True)
                         updated = True
