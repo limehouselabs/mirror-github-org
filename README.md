@@ -5,8 +5,7 @@ This is a small tool for continually mirroring all the public repositories from
 one Github organisation to another, designed for backing up organisations who
 may take down repositories without notice (such as governments).
 
-It also ships with a CircleCI configuration that will run the job once per day
-at midnight UTC.
+It also ships with a CircleCI configuration that will run the job hourly.
 
 Usage
 =====
@@ -23,3 +22,12 @@ Usage
   * `DST_ORG` - The name of the new organisation you just created
 * Run the job and sit back, you now have a daily-updated mirror of a Github
   org!
+
+Todo
+====
+
+* Deal with a few weird Github API error cases
+* Trial Github Actions instead of CircleCI
+* Automate more of the configuration (can we make it possible to just fork it to an `ORGNAME-mirror` account and just work?
+* Generate a changelog
+* Generate events if repositories are removed
