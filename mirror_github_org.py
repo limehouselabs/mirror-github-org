@@ -74,17 +74,24 @@ def mirror(token, src_org, dst_org):
                 except UnknownObjectException:
                     dst_ref = None
 
-                if dst_ref and dst_ref.object:
-                    if src_branch.commit.sha != dst_ref.object.sha:
-                        print("(updated)", end="")
-                        dst_ref.edit(sha=src_branch.commit.sha, force=True)
+                try:
+                    if dst_ref and dst_ref.object:
+                        if src_branch.commit.sha != dst_ref.object.sha:
+                            print("(updated)", end="")
+                            dst_ref.edit(sha=src_branch.commit.sha, force=True)
+                            updated = True
+                    else:
+                        print("(new)", end="")
+                        dst_repo.create_git_ref(
+                            ref="refs/heads/%s" % encoded_name, sha=src_branch.commit.sha
+                        )
                         updated = True
-                else:
-                    print("(new)", end="")
-                    dst_repo.create_git_ref(
-                        ref="refs/heads/%s" % encoded_name, sha=src_branch.commit.sha
-                    )
-                    updated = True
+
+                except GithubException as e:
+                    if e.status == 422:
+                        print("\n * Github API hit a transient validation error, ignoring for now: ", e, end="")
+                    else:
+                        raise e
 
             if not updated:
                 print("\n\nNo more updates to mirror. Ending run.")
