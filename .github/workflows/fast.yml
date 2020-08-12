@@ -1,0 +1,25 @@
+name: Fast update
+on: 
+  workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'
+jobs:
+  fast-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.6' 
+      - name: Build
+        env:
+          GITHUB_TOKEN: ${{ secrets.USER_GITHUB_TOKEN }}
+          SRC_ORG: ${{ secrets.SRC_ORG }}
+          DST_ORG: ${{ secrets.DST_ORG }}
+        run: |
+            pip install pygithub
+            python -u mirror_github_org.py

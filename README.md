@@ -5,7 +5,8 @@ This is a small tool for continually mirroring all the public repositories from
 one Github organisation to another, designed for backing up organisations who
 may take down repositories without notice (such as governments).
 
-It also ships with a CircleCI configuration that will run the job hourly.
+It also ships with a Github Actions configuration that will run the update job
+hourly, and a complete repository/branch scan weekly.
 
 Usage
 =====
@@ -15,18 +16,17 @@ Usage
 * Create a Github personal access token that has access to the destination
   organisation
 * Clone this repository to an organisation/user you control
-* Login to CircleCI and enable it for this new cloned repository
-* Configure three environment variables in CircleCI for this repository
-  * `GITHUB_TOKEN` - The personal access token you created above
+* Go to the new repository settings in Github
+* Configure three environment variables in the `Secrets` panel
+  * `USER_GITHUB_TOKEN` - The personal access token you created above
   * `SRC_ORG` - The name of the organisation you want to mirror
   * `DST_ORG` - The name of the new organisation you just created
-* Run the job and sit back, you now have a daily-updated mirror of a Github
-  org!
+* Run the Github Action and sit back, you now have a daily-updated mirror
+  of a Github org!
 
 Todo
 ====
 
-* Switch to Github Actions because circle has got janky
 * Hard fail when upstream branches diverge and we can't update to them
 * When upstream branches are force-pushed, copy our branch to `branchname-diverged-$datetime` and reset to the upstream branch
 * Deal with a few weird Github API error cases
