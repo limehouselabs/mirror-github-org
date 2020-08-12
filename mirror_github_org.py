@@ -32,7 +32,7 @@ def check_rate_limiting(rl):
         print("\n")
 
 
-def mirror(token, src_org, dst_org):
+def mirror(token, src_org, dst_org, full_run=False):
     g = Github(token)
 
     src_org = g.get_organization(src_org)
@@ -93,7 +93,7 @@ def mirror(token, src_org, dst_org):
                     else:
                         raise e
 
-            if not updated:
+            if not full_run and not updated:
                 print("\n\nNo more updates to mirror. Ending run.")
                 sys.exit(0)
 
@@ -106,4 +106,9 @@ if __name__ == "__main__":
             print("No %s supplied in env" % param)
             sys.exit(1)
 
-    mirror(p["GITHUB_TOKEN"], p["SRC_ORG"], p["DST_ORG"])
+    full_run=False
+    if "--full-run" in sys.argv:
+        print("Doing a full run, will check all repositories and branches - This may take a long time")
+        full_run = True
+
+    mirror(p["GITHUB_TOKEN"], p["SRC_ORG"], p["DST_ORG"], full_run=full_run)

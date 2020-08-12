@@ -26,8 +26,10 @@ Usage
 Todo
 ====
 
+* Hard fail when upstream branches diverge and we can't update to them
+* When upstream branches are force-pushed, copy our branch to `branchname-diverged-$datetime` and reset to the upstream branch
+* Switch to Github Actions
 * Deal with a few weird Github API error cases
-* Trial Github Actions instead of CircleCI
-* Automate more of the configuration (can we make it possible to just fork it to an `ORGNAME-mirror` account and just work?
+* Automate more of the configuration (make it possible to just fork it to an `ORGNAME-mirror` account and just work)
 * Generate a changelog
 * Generate events if repositories are removed

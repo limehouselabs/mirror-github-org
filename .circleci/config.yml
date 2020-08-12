@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  run_mirror:
+  run_fast_mirror:
     docker:
       - image: circleci/python:3.6.4
     steps:
@@ -9,12 +9,23 @@ jobs:
           command: |
             sudo pip install pygithub
             python -u mirror_github_org.py
+  run_full_mirror:
+    docker:
+      - image: circleci/python:3.6.4
+    steps:
+      - checkout
+      - run:
+          command: |
+            sudo pip install pygithub
+            python -u mirror_github_org.py --full-run
 workflows:
   version: 2
   build:
     jobs:
-      - run_mirror
-  automatic_update:
+      - run_fast_mirror
+  # Run fast mirrors hourly, stops when it finds a repository with no updates
+  # because they're sorted by change date
+  fast_update:
     triggers:
       - schedule:
           cron: "0 * * * *"
@@ -23,4 +34,16 @@ workflows:
               only:
                 - master
     jobs:
-      - run_mirror
+      - run_fast_mirror
+  # Run a weekly full mirror to catch things that do not cause the repository
+  # change date to update
+  full_update:
+    triggers:
+      - schedule:
+          cron: "0 0 * * 0"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - run_full_mirror
