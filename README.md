@@ -26,9 +26,9 @@ Usage
 Todo
 ====
 
+* Switch to Github Actions because circle has got janky
 * Hard fail when upstream branches diverge and we can't update to them
 * When upstream branches are force-pushed, copy our branch to `branchname-diverged-$datetime` and reset to the upstream branch
-* Switch to Github Actions
 * Deal with a few weird Github API error cases
 * Automate more of the configuration (make it possible to just fork it to an `ORGNAME-mirror` account and just work)
 * Generate a changelog
