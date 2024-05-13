@@ -8,13 +8,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.6' 
+          python-version: '3.12'
       - name: Build
         env:
           GITHUB_TOKEN: ${{ secrets.USER_GITHUB_TOKEN }}
