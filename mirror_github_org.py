@@ -33,7 +33,7 @@ def check_rate_limiting(rl):
 
 
 def mirror(token, src_org, dst_org, full_run=False):
-    g = Github(token)
+    g = Github(token, per_page=100)
 
     src_org = g.get_organization(src_org)
     dst_org = g.get_organization(dst_org)
@@ -63,17 +63,16 @@ def mirror(token, src_org, dst_org, full_run=False):
             print("\n\nSyncing %s..." % src_repo.name, end="")
 
             updated = False
+            dst_refs = {r.ref: r for r in dst_repo.get_git_refs()}
             def copy_ref(src_ref, ref_type):
                 nonlocal updated
                 check_rate_limiting(src_ref)
 
                 print("\n - %s " % src_ref.name, end=""),
                 encoded_name = urllib.parse.quote(src_ref.name)
+                ref_name = "refs/%s/%s" % (ref_type, encoded_name)
 
-                try:
-                    dst_ref = dst_repo.get_git_ref(ref="%s/%s" % (ref_type, encoded_name))
-                except UnknownObjectException:
-                    dst_ref = None
+                dst_ref = dst_refs.get(ref_name)
 
                 try:
                     if dst_ref and dst_ref.object:
@@ -84,7 +83,7 @@ def mirror(token, src_org, dst_org, full_run=False):
                     else:
                         print("(new)", end="")
                         dst_repo.create_git_ref(
-                            ref="refs/%s/%s" % (ref_type, encoded_name), sha=src_ref.commit.sha
+                            ref=ref_name, sha=src_ref.commit.sha
                         )
                         updated = True
 
