@@ -63,27 +63,28 @@ def mirror(token, src_org, dst_org, full_run=False):
             print("\n\nSyncing %s..." % src_repo.name, end="")
 
             updated = False
-            for src_branch in src_repo.get_branches():
-                check_rate_limiting(src_branch)
+            def copy_ref(src_ref, ref_type):
+                nonlocal updated
+                check_rate_limiting(src_ref)
 
-                print("\n - %s " % src_branch.name, end=""),
-                encoded_name = urllib.parse.quote(src_branch.name)
+                print("\n - %s " % src_ref.name, end=""),
+                encoded_name = urllib.parse.quote(src_ref.name)
 
                 try:
-                    dst_ref = dst_repo.get_git_ref(ref="heads/%s" % encoded_name)
+                    dst_ref = dst_repo.get_git_ref(ref="%s/%s" % (ref_type, encoded_name))
                 except UnknownObjectException:
                     dst_ref = None
 
                 try:
                     if dst_ref and dst_ref.object:
-                        if src_branch.commit.sha != dst_ref.object.sha:
+                        if src_ref.commit.sha != dst_ref.object.sha:
                             print("(updated)", end="")
-                            dst_ref.edit(sha=src_branch.commit.sha, force=True)
+                            dst_ref.edit(sha=src_ref.commit.sha, force=True)
                             updated = True
                     else:
                         print("(new)", end="")
                         dst_repo.create_git_ref(
-                            ref="refs/heads/%s" % encoded_name, sha=src_branch.commit.sha
+                            ref="refs/%s/%s" % (ref_type, encoded_name), sha=src_ref.commit.sha
                         )
                         updated = True
 
@@ -92,6 +93,12 @@ def mirror(token, src_org, dst_org, full_run=False):
                         print("\n * Github API hit a transient validation error, ignoring for now: ", e, end="")
                     else:
                         raise e
+
+            for src_branch in src_repo.get_branches():
+                copy_ref(src_branch, "heads")
+
+            for src_tag in src_repo.get_tags():
+                copy_ref(src_tag, "tags")
 
             if not full_run and not updated:
                 print("\n\nNo more updates to mirror. Ending run.")
