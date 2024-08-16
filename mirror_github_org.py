@@ -38,14 +38,11 @@ def mirror(token, src_org, dst_org):
     src_org = g.get_organization(src_org)
     dst_org = g.get_organization(dst_org)
 
-    for src_repo in src_org.get_repos("public", sort="pushed", direction="desc"):
+    dst_repos = {r.name: r for r in dst_org.get_repos("public")}
+    for src_repo in src_org.get_repos("public"):
         check_rate_limiting(src_repo)
 
-        dst_repo = None
-        try:
-            dst_repo = dst_org.get_repo(src_repo.name)
-        except UnknownObjectException:
-            pass
+        dst_repo = dst_repos.get(src_repo.name)
 
         if not dst_repo:
             print("\n\nForking %s..." % src_repo.name, end="")
