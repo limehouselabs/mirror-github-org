@@ -59,8 +59,12 @@ def mirror(token, src_org, dst_org):
         else:
             print("\n\nSyncing %s..." % src_repo.name, end="")
 
-            dst_refs = {r.ref: r for r in dst_repo.get_git_refs()}
+            if src_repo.pushed_at <= dst_repo.pushed_at:
+                print(" (up to date)", end="")
+                continue
+
             def copy_ref(src_ref, ref_type):
+                nonlocal updated
                 check_rate_limiting(src_ref)
 
                 print("\n - %s " % src_ref.name, end=""),
@@ -74,11 +78,13 @@ def mirror(token, src_org, dst_org):
                         if src_ref.commit.sha != dst_ref.object.sha:
                             print("(updated)", end="")
                             dst_ref.edit(sha=src_ref.commit.sha, force=True)
+                            updated = True
                     else:
                         print("(new)", end="")
                         dst_repo.create_git_ref(
                             ref=ref_name, sha=src_ref.commit.sha
                         )
+                        updated = True
 
                 except GithubException as e:
                     if e.status == 422:
@@ -86,11 +92,30 @@ def mirror(token, src_org, dst_org):
                     else:
                         raise e
 
-            for src_branch in src_repo.get_branches():
-                copy_ref(src_branch, "heads")
+            while True:
+                dst_refs = {r.ref: r for r in dst_repo.get_git_refs()}
+                updated = False
 
-            for src_tag in src_repo.get_tags():
-                copy_ref(src_tag, "tags")
+                for src_branch in src_repo.get_branches():
+                    copy_ref(src_branch, "heads")
+
+                for src_tag in src_repo.get_tags():
+                    copy_ref(src_tag, "tags")
+
+                # Pull requests bump the pushed date,
+                # no need to retry if we haven't updated any refs
+                if not updated:
+                    break
+
+                last_src_repo = src_repo
+                src_repo = src_org.get_repo(src_repo.name)
+                if src_repo.id != last_src_repo.id:
+                    print("\n * Got a different repo while retrying!")
+                    sys.exit(1)
+                if src_repo.pushed_at != last_src_repo.pushed_at:
+                    print("\n * Upstream was pushed while updating, retrying...")
+                else:
+                    break
 
 
 if __name__ == "__main__":
