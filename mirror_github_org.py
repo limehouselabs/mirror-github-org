@@ -32,7 +32,7 @@ def check_rate_limiting(rl):
         print("\n")
 
 
-def mirror(token, src_org, dst_org, full_run=False):
+def mirror(token, src_org, dst_org):
     g = Github(token, per_page=100)
 
     src_org = g.get_organization(src_org)
@@ -62,10 +62,8 @@ def mirror(token, src_org, dst_org, full_run=False):
         else:
             print("\n\nSyncing %s..." % src_repo.name, end="")
 
-            updated = False
             dst_refs = {r.ref: r for r in dst_repo.get_git_refs()}
             def copy_ref(src_ref, ref_type):
-                nonlocal updated
                 check_rate_limiting(src_ref)
 
                 print("\n - %s " % src_ref.name, end=""),
@@ -79,13 +77,11 @@ def mirror(token, src_org, dst_org, full_run=False):
                         if src_ref.commit.sha != dst_ref.object.sha:
                             print("(updated)", end="")
                             dst_ref.edit(sha=src_ref.commit.sha, force=True)
-                            updated = True
                     else:
                         print("(new)", end="")
                         dst_repo.create_git_ref(
                             ref=ref_name, sha=src_ref.commit.sha
                         )
-                        updated = True
 
                 except GithubException as e:
                     if e.status == 422:
@@ -99,10 +95,6 @@ def mirror(token, src_org, dst_org, full_run=False):
             for src_tag in src_repo.get_tags():
                 copy_ref(src_tag, "tags")
 
-            if not full_run and not updated:
-                print("\n\nNo more updates to mirror. Ending run.")
-                sys.exit(0)
-
 
 if __name__ == "__main__":
     p = {}
@@ -112,9 +104,4 @@ if __name__ == "__main__":
             print("No %s supplied in env" % param)
             sys.exit(1)
 
-    full_run=False
-    if "--full-run" in sys.argv:
-        print("Doing a full run, will check all repositories and branches - This may take a long time")
-        full_run = True
-
-    mirror(p["GITHUB_TOKEN"], p["SRC_ORG"], p["DST_ORG"], full_run=full_run)
+    mirror(p["GITHUB_TOKEN"], p["SRC_ORG"], p["DST_ORG"])

@@ -22,4 +22,4 @@ jobs:
           DST_ORG: ${{ secrets.DST_ORG }}
         run: |
             pip install pygithub
-            python -u mirror_github_org.py --full-run
+            python -u mirror_github_org.py
