@@ -38,51 +38,58 @@ def mirror(token, src_org, dst_org):
     src_org = g.get_organization(src_org)
     dst_org = g.get_organization(dst_org)
 
+    print("Building downstream repo index...")
     dst_repos = {r.name: r for r in dst_org.get_repos("public")}
+
     for src_repo in src_org.get_repos("public"):
         check_rate_limiting(src_repo)
 
         dst_repo = dst_repos.get(src_repo.name)
 
+        def repo_msg(msg):
+            print(f"{src_repo.name}: {msg}")
+
         if not dst_repo:
-            print("\n\nForking %s..." % src_repo.name, end="")
+            repo_msg("forking...")
             try:
                 response = dst_org.create_fork(src_repo)
             except GithubException as e:
                 if "contains no Git content" in e._GithubException__data["message"]:
                     # Hit an empty repo, which cannot be forked
-                    print("\n * Skipping empty repository", end="")
+                    repo_msg("skipping empty repository")
                     continue
                 else:
                     raise e
 
         else:
-            print("\n\nSyncing %s..." % src_repo.name, end="")
+            repo_msg("syncing...")
 
             dst_refs = {r.ref: r for r in dst_repo.get_git_refs()}
             def copy_ref(src_ref, ref_type):
                 check_rate_limiting(src_ref)
 
-                print("\n - %s " % src_ref.name, end=""),
                 encoded_name = urllib.parse.quote(src_ref.name)
                 ref_name = "refs/%s/%s" % (ref_type, encoded_name)
+
+                def ref_msg(msg):
+                    print(f"{src_repo.name}({ref_name}): {msg}")
 
                 dst_ref = dst_refs.get(ref_name)
 
                 try:
                     if dst_ref and dst_ref.object:
                         if src_ref.commit.sha != dst_ref.object.sha:
-                            print("(updated)", end="")
                             dst_ref.edit(sha=src_ref.commit.sha, force=True)
+                            ref_msg("updated reference")
                     else:
-                        print("(new)", end="")
                         dst_repo.create_git_ref(
                             ref=ref_name, sha=src_ref.commit.sha
                         )
+                        ref_msg("new reference")
 
                 except GithubException as e:
                     if e.status == 422:
-                        print("\n * Github API hit a transient validation error, ignoring for now: ", e, end="")
+                        ref_msg(f"Github API hit a transient validation error, ignoring for now: {e}")
                     else:
                         raise e
 
