@@ -1,5 +1,5 @@
 name: Full update
-on: 
+on:
   workflow_dispatch:
   schedule:
     - cron: '0 */12 * * *'
@@ -15,11 +15,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Build
+          cache: "pip"
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+      - name: Run update script
         env:
           GITHUB_TOKEN: ${{ secrets.USER_GITHUB_TOKEN }}
           SRC_ORG: ${{ secrets.SRC_ORG }}
           DST_ORG: ${{ secrets.DST_ORG }}
-        run: |
-            pip install pygithub
-            python -u mirror_github_org.py
+        run: python -u mirror_github_org.py
