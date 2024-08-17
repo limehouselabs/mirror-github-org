@@ -3,6 +3,7 @@ import os
 import time
 import datetime
 import urllib.parse
+from multiprocessing import pool
 
 from github import Github
 from github.GithubException import UnknownObjectException, GithubException
@@ -41,7 +42,7 @@ def mirror(token, src_org, dst_org):
     print("Building downstream repo index...")
     dst_repos = {r.name: r for r in dst_org.get_repos("public")}
 
-    for src_repo in src_org.get_repos("public"):
+    def sync_repo(src_repo):
         check_rate_limiting(src_repo)
 
         dst_repo = dst_repos.get(src_repo.name)
@@ -57,7 +58,7 @@ def mirror(token, src_org, dst_org):
                 if "contains no Git content" in e._GithubException__data["message"]:
                     # Hit an empty repo, which cannot be forked
                     repo_msg("skipping empty repository")
-                    continue
+                    return
                 else:
                     raise e
 
@@ -99,6 +100,8 @@ def mirror(token, src_org, dst_org):
             for src_tag in src_repo.get_tags():
                 copy_ref(src_tag, "tags")
 
+    with pool.ThreadPool(processes=10) as p:
+        p.map(sync_repo, src_org.get_repos("public"))
 
 if __name__ == "__main__":
     p = {}
