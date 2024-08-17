@@ -3,6 +3,7 @@ import os
 import time
 import datetime
 import urllib.parse
+from multiprocessing import pool
 
 from github import Github
 from github.GithubException import UnknownObjectException, GithubException
@@ -32,71 +33,75 @@ def check_rate_limiting(rl):
         print("\n")
 
 
-def mirror(token, src_org, dst_org, full_run=False):
-    g = Github(token)
+def mirror(token, src_org, dst_org):
+    g = Github(token, per_page=100)
 
     src_org = g.get_organization(src_org)
     dst_org = g.get_organization(dst_org)
 
-    for src_repo in src_org.get_repos("public", sort="pushed", direction="desc"):
+    print("Building downstream repo index...")
+    dst_repos = {r.name: r for r in dst_org.get_repos("public")}
+
+    def sync_repo(src_repo):
         check_rate_limiting(src_repo)
 
-        dst_repo = None
-        try:
-            dst_repo = dst_org.get_repo(src_repo.name)
-        except UnknownObjectException:
-            pass
+        dst_repo = dst_repos.get(src_repo.name)
+
+        def repo_msg(msg):
+            print(f"{src_repo.name}: {msg}")
 
         if not dst_repo:
-            print("\n\nForking %s..." % src_repo.name, end="")
+            repo_msg("forking...")
             try:
                 response = dst_org.create_fork(src_repo)
             except GithubException as e:
                 if "contains no Git content" in e._GithubException__data["message"]:
                     # Hit an empty repo, which cannot be forked
-                    print("\n * Skipping empty repository", end="")
-                    continue
+                    repo_msg("skipping empty repository")
+                    return
                 else:
                     raise e
 
         else:
-            print("\n\nSyncing %s..." % src_repo.name, end="")
+            repo_msg("syncing...")
 
-            updated = False
-            for src_branch in src_repo.get_branches():
-                check_rate_limiting(src_branch)
+            dst_refs = {r.ref: r for r in dst_repo.get_git_refs()}
+            def copy_ref(src_ref, ref_type):
+                check_rate_limiting(src_ref)
 
-                print("\n - %s " % src_branch.name, end=""),
-                encoded_name = urllib.parse.quote(src_branch.name)
+                encoded_name = urllib.parse.quote(src_ref.name)
+                ref_name = "refs/%s/%s" % (ref_type, encoded_name)
 
-                try:
-                    dst_ref = dst_repo.get_git_ref(ref="heads/%s" % encoded_name)
-                except UnknownObjectException:
-                    dst_ref = None
+                def ref_msg(msg):
+                    print(f"{src_repo.name}({ref_name}): {msg}")
+
+                dst_ref = dst_refs.get(ref_name)
 
                 try:
                     if dst_ref and dst_ref.object:
-                        if src_branch.commit.sha != dst_ref.object.sha:
-                            print("(updated)", end="")
-                            dst_ref.edit(sha=src_branch.commit.sha, force=True)
-                            updated = True
+                        if src_ref.commit.sha != dst_ref.object.sha:
+                            dst_ref.edit(sha=src_ref.commit.sha, force=True)
+                            ref_msg("updated reference")
                     else:
-                        print("(new)", end="")
                         dst_repo.create_git_ref(
-                            ref="refs/heads/%s" % encoded_name, sha=src_branch.commit.sha
+                            ref=ref_name, sha=src_ref.commit.sha
                         )
-                        updated = True
+                        ref_msg("new reference")
 
                 except GithubException as e:
                     if e.status == 422:
-                        print("\n * Github API hit a transient validation error, ignoring for now: ", e, end="")
+                        ref_msg(f"Github API hit a transient validation error, ignoring for now: {e}")
                     else:
                         raise e
 
-            if not full_run and not updated:
-                print("\n\nNo more updates to mirror. Ending run.")
-                sys.exit(0)
+            for src_branch in src_repo.get_branches():
+                copy_ref(src_branch, "heads")
 
+            for src_tag in src_repo.get_tags():
+                copy_ref(src_tag, "tags")
+
+    with pool.ThreadPool(processes=10) as p:
+        p.map(sync_repo, src_org.get_repos("public"))
 
 if __name__ == "__main__":
     p = {}
@@ -106,9 +111,4 @@ if __name__ == "__main__":
             print("No %s supplied in env" % param)
             sys.exit(1)
 
-    full_run=False
-    if "--full-run" in sys.argv:
-        print("Doing a full run, will check all repositories and branches - This may take a long time")
-        full_run = True
-
-    mirror(p["GITHUB_TOKEN"], p["SRC_ORG"], p["DST_ORG"], full_run=full_run)
+    mirror(p["GITHUB_TOKEN"], p["SRC_ORG"], p["DST_ORG"])
