@@ -69,6 +69,10 @@ def mirror(token, src_org, dst_org, full_run=False):
                 print("\n - %s " % src_branch.name, end=""),
                 encoded_name = urllib.parse.quote(src_branch.name)
 
+                if src_branch.name.startswith("dependabot/"):
+                    print("(skipping)", end="")
+                    continue
+
                 try:
                     dst_ref = dst_repo.get_git_ref(ref="heads/%s" % encoded_name)
                 except UnknownObjectException:
